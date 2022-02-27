@@ -1,0 +1,15 @@
+class:
+    person:
+      name: li
+      age: 17
+      sex: true
+class:
+    map:
+      person1:
+        name: wang
+        age: 38
+        sex: false
+      person2:
+        name: liu
+        age: 26
+        sex: true

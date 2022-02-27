@@ -1,0 +1,9 @@
+http_servers:
+    - address: ["0.0.0.0:8080"]
+      keepalive: 1
+      recv_timeout: 1000
+      name: kit_server/1.0.0
+    - address: ["0.0.0.0:8081"]
+      keepalive: 1
+      recv_timeout: 1000
+      name: kit_server/2.0.0

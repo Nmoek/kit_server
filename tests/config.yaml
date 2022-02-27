@@ -1,0 +1,13 @@
+system: 
+    port: 9999
+    float: 20.36
+    int_list: [10, 30]
+    int_set: [5, 6, 6]
+    int_uset: [7, 7, 4]
+    umap:
+        a: 20
+        b: 30
+    map:
+        a: 100
+        b: 300
+        c: 500

@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+0798bd958eaeddbd3363842cd3f158b2 kit_server/http/http11_parser.rl.cpp
+8adc0f781b72eddc70e4a4bf77cc1575 kit_server/http/httpclient_parser.rl.cpp
+e2d558fda1b53f1544842c93d0759764 kit_server/uri.rl.cpp

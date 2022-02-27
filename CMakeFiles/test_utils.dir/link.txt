@@ -1,0 +1,1 @@
+/usr/bin/c++   -rdynamic -O3 -fPIC -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations  -rdynamic CMakeFiles/test_utils.dir/tests/test_utils.cpp.o  -o bin/test_utils  -Wl,-rpath,/home/nmoek/kit_server_project/lib lib/libkit_server.so -ldl -lpthread -lyaml-cpp 

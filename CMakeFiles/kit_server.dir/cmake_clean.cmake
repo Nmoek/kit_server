@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/kit_server.dir/kit_server/Log.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/address.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/application.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/bytearray.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/config.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/coroutine.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/daemon.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/env.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/fdmanager.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/hook.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http11_parser.rl.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http_connection.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http_parser.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http_server.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/http_session.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/httpclient_parser.rl.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/http/servlet.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/iomanager.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/mutex.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/scheduler.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/socket.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/socket_stream.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/stream.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/tcp_server.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/thread.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/timer.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/uri.rl.cpp.o"
+  "CMakeFiles/kit_server.dir/kit_server/util.cpp.o"
+  "kit_server/http/http11_parser.rl.cpp"
+  "kit_server/http/httpclient_parser.rl.cpp"
+  "kit_server/uri.rl.cpp"
+  "lib/libkit_server.pdb"
+  "lib/libkit_server.so"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/kit_server.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

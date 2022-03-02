@@ -11,6 +11,7 @@ static Logger::ptr g_logger = KIT_LOG_NAME("system");
 
 Semaphore::Semaphore(uint32_t count)
 {
+    //初始化信号量
     if(sem_init(&m_semaphore, 0, count) < 0)
     {
         KIT_LOG_ERROR(g_logger) << "Semaphore::Semaphore sem_init fail";
@@ -21,15 +22,16 @@ Semaphore::Semaphore(uint32_t count)
 
 Semaphore::~Semaphore()
 {
+    //销毁信号量
     sem_destroy(&m_semaphore);
 }
 
-//数+1
+//数-1
 void Semaphore::wait()
 {
     while(1)
     {
-        //递减1 函数成功时返回0;出错返回-1
+        //递减1 函数成功时返回0; 出错返回-1
         if(!sem_wait(&m_semaphore))
             break;
 
@@ -43,9 +45,10 @@ void Semaphore::wait()
     }
 }
 
-//数-1
+//数+1
 void Semaphore::notify()
 {
+    //递增1 函数成功时返回0; 出错返回-1
     if(sem_post(&m_semaphore) < 0)
     {
         KIT_LOG_ERROR(g_logger) << "Semaphore::notify sem_post error";

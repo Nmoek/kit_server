@@ -14,16 +14,26 @@
 
 namespace kit_server
 {
-//信号量类
+/**
+ * @brief 信号量类
+ */
 class Semaphore : Noncopyable
 {
 public:
+    /**
+     * @brief 信号量类构造函数
+     * @param[in] count 计数基准值, 一般以0位基准
+     */
     Semaphore(uint32_t count = 0);
+
+    /**
+     * @brief 信号量类析构函数
+     */
     ~Semaphore();
 
-    //数+1
-    void wait();
     //数-1
+    void wait();
+    //数+1
     void notify();
 
 private:
@@ -33,15 +43,22 @@ private:
     Semaphore& operator=(const Semaphore &) = delete;
 
 private:
+    /// 信号量结构体
     sem_t m_semaphore;
 };
 
-
-//局部区域通用锁模板
+/**
+ * @brief 局部区域互斥锁模板类
+ * @tparam T 
+ */
 template<class T>
 class ScopedLockImpl
 {
 public:
+    /**
+     * @brief 构造时加锁
+     * @param[in] mutex 互斥锁变量 
+     */
     ScopedLockImpl(T &mutex)
         :m_mutex(mutex)
     {
@@ -49,6 +66,9 @@ public:
         m_locked = true;
     }
 
+    /**
+     * @brief 析构时解锁
+     */
     ~ScopedLockImpl()
     {
         unlock();
@@ -73,61 +93,110 @@ public:
     }
 
 private:
+    /// 锁资源
     T& m_mutex;
+    /// 上锁状态
     bool m_locked;
 
 };
 
-//通用锁
+
+/**
+ * @brief 互斥锁类
+ */
 class Mutex : Noncopyable
 {
 public:
     typedef ScopedLockImpl<Mutex> Lock;
 
+    /**
+     * @brief 互斥锁类构造函数
+     */
     Mutex() {pthread_mutex_init(&m_mutex, nullptr);}
+
+    /**
+     * @brief 互斥锁类析构函数
+     */
     ~Mutex() {pthread_mutex_destroy(&m_mutex);}
 
+    /**
+     * @brief 加锁
+     */
     void lock() {pthread_mutex_lock(&m_mutex);}
+
+    /**
+     * @brief 解锁
+     */
     void unlock() {pthread_mutex_unlock(&m_mutex);}
 private:
+    /// 互斥锁
     pthread_mutex_t m_mutex;
 
 };
 
-//自旋锁
+/**
+ * @brief 自旋锁类
+ */
 class SpinMutex: Noncopyable
 {
 public:
     typedef ScopedLockImpl<SpinMutex> Lock;
     
+    /**
+     * @brief 自旋锁类构造函数 
+     */
     SpinMutex() {pthread_spin_init(&m_mutex, 0);}
         
+    /**
+     * @brief 自旋锁类析构函数
+     */
     ~SpinMutex() {pthread_spin_destroy(&m_mutex);}
 
+    /**
+     * @brief 加锁
+     */
     void lock() {pthread_spin_lock(&m_mutex);}
 
+    /**
+     * @brief 解锁
+     */
     void unlock() {pthread_spin_unlock(&m_mutex);}
 
 private:
+    /// 自旋锁
     pthread_spinlock_t m_mutex;
 };
 
-//原子锁
+/**
+ * @brief 原子锁类
+ */
 class CASMutex: Noncopyable
 {
 public:
     typedef ScopedLockImpl<CASMutex> Lock;
 
+    /**
+     * @brief 原子锁类构造函数
+     */
     CASMutex(){ m_mutex.clear();}
+
+    /**
+     * @brief 原子锁类析构函数
+     */
     ~CASMutex(){}
 
-
+    /**
+     * @brief 加锁
+     */
     void lock() 
     {
         //执行本次原子操作之前 所有读原子操作必须全部完成
         while(std::atomic_flag_test_and_set_explicit(&m_mutex, std::memory_order_acquire));
     }
 
+    /**
+     * @brief 解锁
+     */
     void unlock() 
     {
         //执行本次原子操作之前 所有写原子操作必须全部完成
@@ -136,6 +205,7 @@ public:
 
 
 private:
+    /// 原子锁
     volatile std::atomic_flag m_mutex;
 
 };
@@ -153,8 +223,10 @@ public:
     void unlock() {}
 };
 
-
-//局部区域读锁模板
+/**
+ * @brief 局部区域读锁模板类
+ * @tparam T 锁类型
+ */
 template<class T>
 class ReadScopedLockImpl
 {
@@ -195,7 +267,10 @@ private:
 
 };
 
-//局部区域写锁模板
+/**
+ * @brief 局部区域写锁模板类
+ * @tparam T 锁类型
+ */
 template<class T>
 class WriteScopedLockImpl
 {
@@ -236,24 +311,42 @@ private:
 
 };
 
-//读写锁
+/**
+ * @brief 读写锁类
+ */
 class RWMutex: Noncopyable
 {
 public:
     typedef ReadScopedLockImpl<RWMutex> ReadLock;
     typedef WriteScopedLockImpl<RWMutex> WriteLock;
 
+    /**
+     * @brief 读写锁类构造函数 初始化读写锁
+     */
     RWMutex() {pthread_rwlock_init(&m_rwlock, nullptr);}
     
+    /**
+     * @brief 读写锁类构造函数 初始化读写锁
+     */
     ~RWMutex() {pthread_rwlock_destroy(&m_rwlock);}
     
+    /**
+     * @brief 读加锁
+     */
     void rdlock() {pthread_rwlock_rdlock(&m_rwlock);}
 
+    /**
+     * @brief 写加锁
+     */
     void wrlock() {pthread_rwlock_wrlock(&m_rwlock);}
 
+    /**
+     * @brief 读写全部解锁
+     */
     void unlock() {pthread_rwlock_unlock(&m_rwlock);}
   
 private:
+    /// 读写锁
     pthread_rwlock_t m_rwlock;
 };
 

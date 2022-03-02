@@ -10,8 +10,15 @@ namespace kit_server
 static Logger::ptr g_logger = KIT_LOG_NAME("system");
 
 /**************************************Thread*******************************/
-//线程局部变量
+
+/**
+ * @brief 线程局部变量，存储当前运行线程指针
+ */
 static thread_local Thread* t_thread = nullptr;
+
+/**
+ * @brief 线程局部变量，存储当前运行线程的名称
+ */
 static thread_local std::string t_thread_name = "unknow";
 
 Thread::Thread(std::function<void()> cb, const std::string& name)
@@ -48,23 +55,24 @@ void *Thread::run(void * arg)
     //给内核线程命名 但是只能接收小于等于16个字符
     pthread_setname_np(pthread_self(), thread->m_name.substr(0, 15).c_str());
 
-    //迷惑点 防止m_cb中智能指针的引用不被释放 交换一次会减少引用次数
+    //防止m_cb中智能指针的引用不被释放 交换一次会减少引用次数
     std::function<void()> cb;
     cb.swap(thread->m_cb);  
 
     //确保线程已经完全初始化好了 再进行唤醒
     thread->m_sem.notify();
 
+    //调取执行函数
     cb();
 
-    //g++编译器要求返回值
     return 0;
 }
 
 
 Thread:: ~Thread()
 {
-    if(m_thread) //析构时候不马上杀死线程 而是将其置为分离态
+    //析构时候不马上杀死线程 而是将其置为分离态
+    if(m_thread) 
         pthread_detach(m_thread);
 
 }
@@ -89,19 +97,19 @@ void Thread::join()
 }
 
 //获得管理当前线程的对象this指针
-Thread* Thread::_getThis()
+Thread* Thread::GetThis()
 {
     return t_thread;
 }
 
 //获取当前线程局部变量 命名
-const std::string& Thread::_getName()
+const std::string& Thread::GetName()
 {
     return t_thread_name;
 }
 
 //设置当前线程局部变量 命名
-void Thread::_setName(const std::string& name)
+void Thread::SetName(const std::string& name)
 {
     if(t_thread)
     {

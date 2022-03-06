@@ -14,34 +14,59 @@ namespace kit_server
 
 static Logger::ptr g_logger = KIT_LOG_NAME("system");
 
-//协程ID累加器
+
+/**
+ * @brief 协程ID累加器
+ */
 static std::atomic<uint64_t> s_cor_id(0);
-//协程总数
+
+/**
+ * @brief 当前线程下存在协程的总数
+ */
 static std::atomic<uint64_t> s_cor_sum(0);
 
-//当前运行协程
+/**
+ * @brief 当前线程下正在运行协程
+ */
 static thread_local Coroutine* cor_this = nullptr;
-//上一次运行的协程
+
+/**
+ * @brief 上一次切出的协程
+ */
 static thread_local Coroutine::ptr init_cor_sp = nullptr;
 
-//协程栈大小默认配置为 1MB
+/**
+ * @brief 配置项 每个协程的栈默认大小为1MB
+ */
 static ConfigVar<uint32_t>::ptr g_cor_stack_size =
     Config::LookUp("coroutine.stack_size", (uint32_t)1024*1024, "coroutine stack size");
 
+/**
+ * @brief 协程栈内存分配器类
+ */
 class MallocStackAllocator
 {
 public:
+    /**
+     * @brief 分配内存
+     * @param[in] size 所需内存大小 
+     * @return void* 
+     */
     static void* Alloc(size_t size)
     {
         return malloc(size);
     }
 
+    /**
+     * @brief 释放内存
+     * @param[in] vp 栈空间指针 
+     * @param[in] size 栈空间大小
+     */
     static void Dealloc(void *vp, size_t size)
     {
         free(vp);
     }
 };
-
 //使用using起别名
 using StackAllocator = MallocStackAllocator;
 
@@ -57,9 +82,6 @@ Coroutine::Coroutine()
         KIT_ASSERT2(false, "getcontext error");
     }
     ++s_cor_sum;
-
-    
-    
 }
 
 Coroutine::Coroutine(std::function<void()> cb, size_t stack_size, bool use_call)
@@ -226,13 +248,10 @@ void Coroutine::back()
 
 }
 
-Coroutine::State Coroutine::getState() const {return m_state;}
-//设置协程状态
-void Coroutine::setState(State state) {m_state = state;}
 
 void Coroutine::Init()
 {
-    //创建主协程
+    //创建母协程init
     Coroutine::ptr main_cor(new Coroutine);
 
     KIT_ASSERT(cor_this == main_cor.get());

@@ -45,7 +45,7 @@ void test_coroutine()
 
 int main()
 {
-    Thread::_setName("main thread");
+    Thread::SetName("main thread");
     vector<Thread::ptr> mv;
 
     //启动3个线程 每个线程上有2个协程：1个母协程 1个子协程

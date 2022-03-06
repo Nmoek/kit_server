@@ -121,7 +121,7 @@ Coroutine::~Coroutine()
     --s_cor_sum;
     if(m_stack)
     {
-        //只要不是运行态就释放栈空间
+        //只要不是运行态 或者 挂起就释放栈空间
         KIT_ASSERT(m_state != State::EXEC || m_state != State::HOLD);
 
         //释放栈空间
@@ -175,17 +175,11 @@ void Coroutine::swapIn()
 {
     //将当前的子协程Coroutine * 设置到 cor_this中 表明是这个协程正在运行
     SetThis(this);
-    //std::cout << m_state << std::endl;
+
     //没在运行态才能 调入运行
     KIT_ASSERT(m_state != State::EXEC);
 
     m_state = State::EXEC;
-    // if(swapcontext(&init_cor_sp->m_ctx, &m_ctx) < 0)
-    // {
-    //     KIT_LOG_ERROR(g_logger) << "swapIn: swapcontext error";
-
-    //     KIT_ASSERT2(false, "swapcontext error");
-    // }
 
     if(swapcontext(&Scheduler::GetMainCor()->m_ctx, &m_ctx) < 0)
     {
@@ -207,15 +201,6 @@ void Coroutine::swapOut()
         KIT_ASSERT2(false, "swapcontext error");
     }
    
-
-
-    // if(swapcontext(&m_ctx, &Scheduler::GetMainCor()->m_ctx) < 0)
-    // {
-    //     KIT_LOG_ERROR(g_logger) << "swapOut: swapcontext error";
-
-    //     KIT_ASSERT2(false, "swapcontext error");
-    // }
-
 }
 
 //从init协程 切换到 目标代码
@@ -225,7 +210,6 @@ void Coroutine::call()
     SetThis(this);
     m_state = State::EXEC;
     //应该是把当前创建调度器的那个协程的上下文拿出来运行
-    //if(swapcontext(&init_cor_sp->m_ctx, &m_ctx) < 0)
     if(swapcontext(&init_cor_sp->m_ctx, &m_ctx) < 0)
     {
         KIT_LOG_ERROR(g_logger) << "call: swapcontext error";

@@ -23,10 +23,10 @@ CASMutex c_mutex;
 
 void func1() 
 {
-    KIT_LOG_INFO(KIT_LOG_ROOT()) << "func1 " << "name=" << Thread::_getName()
-                            << " this.name=" << Thread::_getThis()->getName()
+    KIT_LOG_INFO(KIT_LOG_ROOT()) << "func1 " << "name=" << Thread::GetName()
+                            << " this.name=" << Thread::GetThis()->getName()
                             << " id=" << GetThreadId()
-                            << " this.id=" << Thread::_getThis()->getId();
+                            << " this.id=" << Thread::GetThis()->getId();
     for(int i = 0; i < 100000000;++i)
     {
         {

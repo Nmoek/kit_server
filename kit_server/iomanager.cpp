@@ -186,7 +186,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
     /*设置句柄对象的信息*/
     //同一个句柄不能在上面加相同的事件
     //如果有这种情况出现 说明有多个线程在操作同一个句柄
-    if(KIT_UNLICKLY(fd_ctx->events & event))   
+    if(KIT_UNLIKELY(fd_ctx->events & event))   
     {
         KIT_LOG_ERROR(g_logger) << "addEvent: event exists, fd= " << fd
             << ", event=" << event

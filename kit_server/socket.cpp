@@ -215,15 +215,15 @@ Socket::ptr Socket::accept()
 bool Socket::bind(const Address::ptr addr)
 {
     //如果套接字无效
-    if(KIT_UNLICKLY(!isValid()))
+    if(KIT_UNLIKELY(!isValid()))
     {
         //创建新的套接字
         newSocket();
-        if(KIT_UNLICKLY(!isValid()))
+        if(KIT_UNLIKELY(!isValid()))
             return false;
     }
 
-    if(KIT_UNLICKLY(addr->getFamily() != m_family))
+    if(KIT_UNLIKELY(addr->getFamily() != m_family))
     {
         KIT_LOG_ERROR(g_logger) << "bind socket family =" << m_family << ", addr family="
             << addr->getFamily() << ", is defferent!";
@@ -246,18 +246,18 @@ bool Socket::bind(const Address::ptr addr)
 //connect API 带超时
 bool Socket::connect(const Address::ptr addr, uint64_t timeout_ms)
 {
-    if(KIT_UNLICKLY(!isValid()))
+    if(KIT_UNLIKELY(!isValid()))
     {
         //创建新的套接字
         newSocket();
-        if(KIT_UNLICKLY(!isValid()))
+        if(KIT_UNLIKELY(!isValid()))
         {
             return false;
         }
     }
 
     
-    if(KIT_UNLICKLY(addr->getFamily() != m_family))
+    if(KIT_UNLIKELY(addr->getFamily() != m_family))
     {
         KIT_LOG_ERROR(g_logger) << "connect socket family =" << m_family << ", addr family="
             << addr->getFamily() << ", is defferent!";
@@ -298,7 +298,7 @@ bool Socket::connect(const Address::ptr addr, uint64_t timeout_ms)
 //listen API
 bool Socket::listen(int backlog)
 {
-    if(KIT_UNLICKLY(!isValid()))
+    if(KIT_UNLIKELY(!isValid()))
     {
         KIT_LOG_ERROR(g_logger) << "listen error sock fd = -1";
         return false;
@@ -590,7 +590,7 @@ void Socket::initSocket()
 void Socket::newSocket()
 {   
     m_fd = socket(m_family, m_type, m_protocol);
-    if(KIT_LICKLY(m_fd != -1))
+    if(KIT_LIKELY(m_fd != -1))
     {
         initSocket();
     }

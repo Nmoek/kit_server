@@ -11,16 +11,16 @@
 
 //编译器优化
 #if  defined __GNUC__ || defined __llvm__
-#   define KIT_LICKLY(x)   __builtin_expect(!!(x), 1)
-#   define KIT_UNLICKLY(x)   __builtin_expect(!!(x), 0)
+#   define KIT_LIKELY(x)   __builtin_expect(!!(x), 1)
+#   define KIT_UNLIKELY(x)   __builtin_expect(!!(x), 0)
 #else
-#   define KIT_LICKLY(x)    (x)
-#   define KIT_UNLICKLY(x)  (x)
+#   define KIT_LIKELY(x)    (x)
+#   define KIT_UNLIKELY(x)  (x)
 #endif
 
 
 #define KIT_ASSERT(x) do{\
-    if(KIT_UNLICKLY(!(x))){\
+    if(KIT_UNLIKELY(!(x))){\
         KIT_LOG_ERROR(KIT_LOG_ROOT()) << "\nASSERTION: " #x   \
                                       <<  "\nbacktrace: \n" \
                                       << kit_server::BackTraceToString(100, "    ");\
@@ -31,7 +31,7 @@ while(0);
 
 //第二个参数可做一些补充说明
 #define KIT_ASSERT2(x, w)do{\
-    if(KIT_UNLICKLY(!(x))){\
+    if(KIT_UNLIKELY(!(x))){\
         KIT_LOG_ERROR(KIT_LOG_ROOT()) << "\nASSERTION: " #x   \
                                       << "\n" << w \
                                       <<  "\nbacktrace: \n" \

@@ -17,16 +17,17 @@ static thread_local Coroutine* t_sche_coroutine = nullptr;
 
 
 Scheduler::Scheduler(const std::string& name, size_t threads_size, bool use_caller)
-    :m_name(name.size() ? name : Thread::_getName())
+    :m_name(name.size() ? name : Thread::GetName())
 {
 
     KIT_ASSERT(threads_size > 0);
 
+    //当前线程作为调度线程使用
     if(use_caller)
     {
         //初始化母协程  pre_cor_sp 被初始化
         Coroutine::Init();
-        --threads_size; //减1是因为当前的这个线程也会被纳入
+        --threads_size; //减1是因为当前的这个线程也会被纳入调度 少创建一个线程 
 
         //这个断言防止 该线程中重复创建调度器
         KIT_ASSERT(Scheduler::GetThis() == nullptr);  
@@ -37,20 +38,19 @@ Scheduler::Scheduler(const std::string& name, size_t threads_size, bool use_call
         m_mainCoroutine.reset(new Coroutine(std::bind(&Scheduler::run, this), 0, true));
         
 
-
         //线程的主协程不再是一开始使用协程初始化出来的那个母协程，而应更改为创建了调度器的协程
         t_sche_coroutine = m_mainCoroutine.get();
         m_mainThreadId = GetThreadId();
-        // m_threadIds.push_back(m_mainThreadId);
+        m_threadIds.push_back(m_mainThreadId);
            
     }
-    else 
+    else //当前线程不作为调度线程使用
     {
         m_mainThreadId = -1;
     }
 
     //防止线程名称没改
-    Thread::_setName(m_name);
+    Thread::SetName(m_name);
 
     m_threadSum = threads_size;
 }
@@ -121,8 +121,6 @@ void Scheduler::stop()
 
     //2.多个线程在运行  先把子线程停止  再停止主线程
 
-   // bool exit_on_this_coroutine = false;
-
     //主线程Id不为-1说明是创建调度器的线程
     if(m_mainThreadId != -1)
     {
@@ -176,16 +174,13 @@ void Scheduler::stop()
         // }
 
         //方法2
-       // KIT_LOG_DEBUG(g_logger) << "in stopping";
+
         if(!stopping())
         {
-            //KIT_LOG_DEBUG(g_logger) << "m_mainCoroutine->call();";
             m_mainCoroutine->call();
         }
         
     }
-
-
 
     //这里这么写的作用：
     //1.保证工作队列的线程安全 2.快速将工作队列清空 将线程资源拿到这来进行清理
@@ -210,6 +205,7 @@ void Scheduler::run()
     KIT_LOG_DEBUG(g_logger) << "run start!";
     //设置当前协程被调度的调度器是哪一个
     setThis();
+    //当前线程置为HOOK状态
     SetHookEnable(true);
 
     //当前线程ID不等于主线程ID
@@ -220,8 +216,9 @@ void Scheduler::run()
 
     //创建一个专门跑idle()的协程
     Coroutine::ptr idle_coroutine(new Coroutine(std::bind(&Scheduler::idle, this)));
+    //创建一个协程对象 接函数型的任务 依附到其上进行调度
     Coroutine::ptr cb_coroutine = nullptr;
-
+    //创建一个被调度对象 接队列里拿出来的任务
     CoroutineObject co;
 
     while(1)
@@ -266,15 +263,7 @@ void Scheduler::run()
             }
 
             is_tickle |= it != m_coroutines.end();
-
-            // KIT_LOG_DEBUG(g_logger) << "m_coroutine size=" << m_coroutines.size();
-            // if(it == m_coroutines.end())
-            // {
-            //    // KIT_LOG_DEBUG(g_logger) << "没有需要调度的任务";
-            //     is_work = false;
-            //     is_tickle = true;
-            // }
-
+     
                 
             
         }//解锁
@@ -285,7 +274,7 @@ void Scheduler::run()
             tickle();
         }
 
-        /*二、根据可执行对象的类型 分为 协程和函数 来分别执行对应可执行操作*/
+        /*二、根据可执行对象的类型 分为 协程和函数 来分别执行对应调度操作*/
 
         //a. 如果要执行的任务是协程
         //契合当前线程的协程还没执行完毕
@@ -297,11 +286,6 @@ void Scheduler::run()
             co.cor->swapIn();
             --m_activeThreadCount;
 
-            // if(co.cor->getID() == 4)
-            // {
-            //     KIT_LOG_INFO(g_logger) << "4号切回到run()  协程形式";
-            // }
-            //从上面语句调回之后的处理 分为 还需要继续执行 和 需要挂起
             if(co.cor->getState() == Coroutine::State::READY)
             {
                 schedule(co.cor);
@@ -320,7 +304,7 @@ void Scheduler::run()
         }
         else if(co.cb)  //b. 如果要执行的任务是函数
         {
-            //KIT_LOG_DEBUG(g_logger) << "任务是函数";
+
             if(cb_coroutine)    //协程体的指针不为空就继续利用现有空间
             {
                 cb_coroutine->reset(co.cb);
@@ -336,10 +320,6 @@ void Scheduler::run()
             cb_coroutine->swapIn();
             --m_activeThreadCount;
 
-            // if(cb_coroutine->getID() == 4)
-            // {
-            //     KIT_LOG_INFO(g_logger) << "4号切回到run()  函数形式";
-            // }
 
             //从上面语句调回之后的处理 分为 还需要继续执行 和 需要挂起
             if(cb_coroutine->getState() == Coroutine::State::READY)
@@ -376,7 +356,6 @@ void Scheduler::run()
             {
                 KIT_LOG_INFO(g_logger) << "idle_coroutine TERM!";
                 break;
-                // continue;
             }
 
 
@@ -422,8 +401,6 @@ bool Scheduler::stopping()
 void Scheduler::idle()
 {
     
-    
-    //KIT_LOG_DEBUG(g_logger) << "in stopping";
     while(!stopping())
     {
         //KIT_LOG_INFO(g_logger) << "coroutine idle";

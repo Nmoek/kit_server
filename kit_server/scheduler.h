@@ -17,44 +17,78 @@
 namespace kit_server
 {
 
-
+/**
+ * @brief 调度器类
+ */
 class Scheduler
 {
 public:
     typedef std::shared_ptr<Scheduler> ptr;
     typedef Mutex MutexType;
 
-    //use_caller作用：main线程也需要纳入到线程池的管理中来，
-    //执行构造的地方如果该参数为true 代表当前线程需要纳入进来
+    /**
+     * @brief 调度器类构造函数
+     * @param[in] name 调度器名称
+     * @param[in] threads_size 初始线程数量
+     * @param[in] use_caller 当前线程是否纳入调度队列 默认纳入调度
+     */
     Scheduler(const std::string& name = "", size_t threads_size = 1, bool use_caller = true);
 
+    /**
+     * @brief 调度器类析构函数
+     */
     virtual ~Scheduler();
 
-    //获取调度器的名称
+    /**
+     * @brief 获取调度器的名称
+     * @return const std::string& 
+     */
     const std::string& getName() const {return m_name;}
     
+    /**
+     * @brief 开启调度器
+     */     
     void start();
 
+    /**
+     * @brief 停止调度器
+     */
     void stop();
 
+    /**
+     * @brief 是否存在空闲线程
+     * @return true 存在空闲线程
+     * @return false 不存在空闲线程
+     */
     bool isIdleThreads() {return m_idleThreadCount > 0;}
 
-    //调度函数  单个放入队列
+    /**
+     * @brief 将单个任务加入队列
+     * @tparam CorOrCB 协程/函数类型
+     * @param[in] cc 具体的被调度对象
+     * @param[in] threadId 指定任务被哪一个线程调度 默认不指定
+     */
     template<class CorOrCB>
     void schedule(CorOrCB cc, int threadId = -1)
     {
+        //该标志判断放入任务之前 队列是否空的
         bool isEmpty = false;
-
         {
             MutexType::Lock lock(m_mutex);
             isEmpty = scheduleNoLock(cc, threadId);
         }
 
+        //如果放入任务之前队列为空 要去唤醒线程抢任务
         if(isEmpty)
             tickle();
     }
 
-    //调度函数 批量放入队列
+    /**
+     * @brief 将多个任务加入队列
+     * @tparam InputIterator 协程/函数容器迭代器类型
+     * @param[in] begin 起始迭代器 
+     * @param[in] end 末尾迭代器
+     */
     template<class InputIterator>
     void schedule(InputIterator begin, InputIterator end)
     {
@@ -74,23 +108,42 @@ public:
     }
 
 protected:
-    //唤醒函数
+    /**
+     * @brief 线程唤醒函数
+     */
     virtual void tickle();
     
-    //真正执行协程的调度
+    /**
+     * @brief 执行协程调度的回调函数
+     */
     void run();
 
-    //让子类有其他的清理功能
+    /**
+     * @brief 调度器停止的判断条件
+     * @return true 停止成功
+     * @return false 停止失败
+     */
     virtual bool stopping();
 
-    //协程没有任务可做要执行它
+    /**
+     * @brief 执行协程空转的回调函数
+     */
     virtual void idle();
 
-    //设置线程当前调度器
+    /**
+     * @brief 设置当前线程下运行的调度器this指针
+     */
     void setThis();
 
 private:
-    //添加任务函数 真正执行添加动作
+    /**
+     * @brief 真正执行任务添加动作
+     * @tparam CorOrCB 协程/函数类型
+     * @param[in] cc 具体的被调度对象
+     * @param[in] threadId 指定任务被哪一个线程调度 默认不指定
+     * @return true 放入任务之前队列为空
+     * @return false 放入任务之前队列不空
+     */
     template<class CorOrCB>
     bool scheduleNoLock(CorOrCB cc, int threadId = -1)
     {
@@ -101,25 +154,35 @@ private:
         if(co.cor || co.cb)
         {
             m_coroutines.push_back(co);
-            //KIT_LOG_INFO(KIT_LOG_ROOT()) << "任务已添加";
-        
         }
 
         return isEmpty; 
     }
 
 public:
-    //获取到调度器
+    /**
+     * @brief 获取当前线程下运行的调度器this指针
+     * @return Scheduler* 
+     */
     static Scheduler* GetThis();
-    //获取主协程  和线程里的母协程不是一个概念
+
+    /**
+     * @brief 获取持有调度器的协程指针
+     * @return Coroutine* 
+     */
     static Coroutine* GetMainCor();
 
 private:
-    //自定义一个可执行对象结构体
+    /**
+     * @brief 可执行对象结构体
+     */
     struct CoroutineObject
     {
+        /// 协程
         Coroutine::ptr cor;
+        /// 函数
         std::function<void()> cb;
+        /// 指定的执行线程
         pid_t threadId;
 
         CoroutineObject(Coroutine::ptr p, pthread_t t)
@@ -142,7 +205,7 @@ private:
             cb.swap(*f);
         }
 
-        //和STL结合必须有默认构造函数
+        /*和STL结合必须有默认构造函数*/
         CoroutineObject()
             :threadId(-1){ }
 
@@ -157,31 +220,31 @@ private:
 
 
 protected:
-    //线程ID数组
+    /// 线程ID数组
     std::vector<int> m_threadIds;
-    //总共线程数
+    /// 总共线程数
     size_t m_threadSum;
-    //活跃线程数
+    /// 活跃线程数
     std::atomic<size_t> m_activeThreadCount = {0};
-    //空闲线程数
+    /// 空闲线程数
     std::atomic<size_t> m_idleThreadCount = {0};
-    //主线程ID
+    /// 主线程ID
     pid_t m_mainThreadId = 0;
-    //正在停止运行标志
+    /// 正在停止运行标志
     bool m_stopping = true;
-    //是否自动停止标志
+    /// 是否自动停止标志
     bool m_autoStop = false;
 
 private:    
-    //线程池 工作队列
+    /// 线程池 工作队列
     std::vector<Thread::ptr> m_threads;
-    //任务队列
+    /// 任务队列
     std::list<CoroutineObject> m_coroutines;
-    //互斥锁
+    /// 互斥锁
     MutexType m_mutex;
-    //主协程智能指针 
+    /// 主协程智能指针 
     Coroutine::ptr m_mainCoroutine;
-    //调度器名称
+    // 调度器名称
     std::string m_name;
 };
 

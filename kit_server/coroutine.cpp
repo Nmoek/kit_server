@@ -85,7 +85,8 @@ Coroutine::Coroutine()
 }
 
 Coroutine::Coroutine(std::function<void()> cb, size_t stack_size, bool use_call)
-    :m_id(++s_cor_id), m_cb(cb)
+    :m_id(++s_cor_id)
+    ,m_cb(cb)
 {
     ++s_cor_sum;
 
@@ -104,7 +105,7 @@ Coroutine::Coroutine(std::function<void()> cb, size_t stack_size, bool use_call)
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = m_stack_size;
 
-    //use_call 标识当前的协程是否是调度协程
+    //use_call 标识当前的协程是否作为调度协程使用
     if(!use_call)
         //指定要运行的代码序列
         makecontext(&m_ctx, &Coroutine::MainFunc, 0);
@@ -150,7 +151,6 @@ void Coroutine::reset(std::function<void()> cb)
     KIT_ASSERT(m_state == State::INIT || m_state == State::TERM || 
                m_state == State::EXCEPTION);
 
-    m_cb = cb;
     if(getcontext(&m_ctx) < 0)
     {
         KIT_LOG_ERROR(g_logger) << "reset: getcontext error";
@@ -299,7 +299,6 @@ void Coroutine::MainFunc()
    
     KIT_ASSERT(cur);
 
-
     try
     {
         cur->m_cb();
@@ -316,7 +315,7 @@ void Coroutine::MainFunc()
     catch(...)
     {
         cur->m_state = State::EXCEPTION;
-        KIT_LOG_ERROR(g_logger) << "Coroutine: MainFunc exception:" << ",but dont konw reson"
+        KIT_LOG_ERROR(g_logger) << "Coroutine: MainFunc exception:" << ",but dont konw reason"
             << std::endl
             << BackTraceToString();
     }

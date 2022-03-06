@@ -27,6 +27,7 @@ public:
         READY,    //就绪状态
         EXCEPTION //异常状态
     };
+
 public:
     typedef std::shared_ptr<Coroutine> ptr;
 
@@ -43,7 +44,6 @@ public:
      */
     ~Coroutine();
 
-    //给协程体重置  INIT/TERM状态下才能重置
     /**
      * @brief 协程重置 重新指定执行函数
      * @param[in] cb 新指定的执行函数 
@@ -101,7 +101,7 @@ public:
     static void SetThis(Coroutine *c);
 
     /**
-     * @brief 返回当前在执行的协程的this指针
+     * @brief 返回当前在执行的协程的this智能指针
      * @return Coroutine::ptr 
      */
     static Coroutine::ptr GetThis();
@@ -122,16 +122,6 @@ public:
      * @return uint64_t 
      */
     static uint64_t TotalCoroutines();
-    
-    /**
-     * @brief 一般协程的回调主函数
-     */
-    static void MainFunc();
-
-    /**
-     * @brief 持有调度器协程的回调主函数
-     */
-    static void CallMainFunc();
 
     /**
      * @brief 获取协程ID
@@ -144,6 +134,16 @@ private:
      * @brief 协程类默认构造函数 负责生成init协程
      */
     Coroutine();
+
+    /**
+     * @brief 一般协程的回调主函数
+     */
+    static void MainFunc();
+
+    /**
+     * @brief 持有调度器协程的回调主函数
+     */
+    static void CallMainFunc();
 
 private:
     ///协程ID
@@ -160,6 +160,7 @@ private:
     std::function<void()> m_cb;
 
 };
+
 }
 
 

@@ -101,7 +101,7 @@ void netio_test()
 
 int main()
 {
-    Thread::_setName("test");
+    Thread::SetName("test");
     KIT_LOG_INFO(g_logger) << "test begin";
     IOManager iom("test", 3, false);
 

@@ -29,7 +29,7 @@ pid_t GetThreadId()
 const std::string& GetThreadName()
 {
     //返回内核中tid  不使用pthread_self()是因为其返回的不是真正线程ID
-    return Thread::_getName();
+    return Thread::GetName();
 }
 
 uint64_t GetCoroutineId()

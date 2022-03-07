@@ -46,6 +46,10 @@ void run()
         return 0;                    
 
     });
+
+    sd->addServlet("/hello", http::HelloServlet::ptr(new http::HelloServlet("kit_server/1.0.0")));
+
+
     server->start();
 
 }

@@ -29,6 +29,7 @@ ServletDispatch::ServletDispatch(const std::string& name)
     :Servlet(name)
 {
     m_default.reset(new NotFoundServlet("kit_server/1.0.0"));
+
 }
 
 //服务执行
@@ -137,7 +138,6 @@ Servlet::ptr ServletDispatch::getMatchedServlet(const std::string& uri)
 
 /*************************************NotFoundServlet**************************************/
 
-
 NotFoundServlet::NotFoundServlet(const std::string& serverName, const std::string& name)
     :Servlet(name)
     ,m_serverName(serverName)
@@ -156,6 +156,34 @@ NotFoundServlet::NotFoundServlet(const std::string& serverName, const std::strin
 }
 
 int32_t NotFoundServlet::handle(HttpRequest::ptr request, HttpResponse::ptr response, HttpSession::ptr session)
+{
+    response->setStatus(HttpStatus::NOT_FOUND);
+    response->setHeader("Server", m_serverName);
+    response->setHeader("Content-type", "text/html");
+    response->setBody(m_content);
+    
+    return 0;
+}
+
+/*************************************HelloServlet**************************************/
+HelloServlet::HelloServlet(const std::string& serverName, const std::string& name)
+    :Servlet(name)
+    ,m_serverName(serverName)
+{
+    m_content = 
+    "<html>"
+        "<head>"
+            "<title>404 Hello, Welcome my server! </title>"
+        "</head>"
+        "<body>"
+            "<center><h1>Hello, Welcome my server!</hl></center>"
+            "<hr><center>"+ m_serverName + "</center></hr>"
+        "</body>"
+    "</html>";
+
+}
+
+int32_t HelloServlet::handle(HttpRequest::ptr request, HttpResponse::ptr response, HttpSession::ptr session)
 {
     response->setStatus(HttpStatus::NOT_FOUND);
     response->setHeader("Server", m_serverName);

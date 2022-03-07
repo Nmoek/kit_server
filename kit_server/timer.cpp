@@ -13,8 +13,8 @@ static Logger::ptr g_logger  = KIT_LOG_NAME("system");
 Timer::Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager *manager)
     :m_ms(ms), m_cb(cb), m_recurring(recurring), m_manager(manager)
 {
+    //计算到期时间点
     m_next = GetCurrentMs() + m_ms;
-
 }
 
 Timer::Timer(uint64_t next)
@@ -122,7 +122,7 @@ bool Timer::Comparator::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs)
     if(!rhs)
         return false;
     
-    /*判断到期时间*/
+    /*都有值 判断到期时间*/
     if(lhs->m_next < rhs->m_next)
         return true;
 
@@ -140,6 +140,7 @@ bool Timer::Comparator::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs)
 /*********************************TimerManager********************************/
 TimerManager::TimerManager()
 {
+    //初始化时候 获取一次服务器时间
     m_previousTime = GetCurrentMs();
 }
 
@@ -165,10 +166,11 @@ void TimerManager::addTimer(Timer::ptr p)
 {
     MutexType::WriteLock lock(m_mutex);
     //insert返回两个值 插入后的迭代器位置/插入是否成功
-    //判断插入后是否是在队头 最小的到时时间
+    //判断插入后是否是在队头
     auto it = m_timers.insert(p).first;
     bool is_front = (it == m_timers.begin()) && !m_tickled;
-    //频繁修改时候 避免总是去唤醒
+    //没有唤醒过 就把标志m_tickled置为true
+    //否则上一次已经唤醒过且没有把队头的定时器取走就不能去唤醒
     if(is_front)
         m_tickled = true;
 
@@ -181,8 +183,11 @@ void TimerManager::addTimer(Timer::ptr p)
     
 }
 
-
-//添加条件定时器辅助函数
+/**
+ * @brief 添加条件定时器辅助函数
+ * @param[in] weak_cond 判断条件是否存在的弱指针 
+ * @param[in] cb 触发的回调函数 
+ */
 static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> cb)
 {   
     //利用弱指针weak_ptr 来判断条件是否存在
@@ -235,7 +240,7 @@ void TimerManager::listExpiredCb(std::vector<std::function<void()> >& cbs)
 
     bool changed = checkClockChange(now_ms);
     //服务器时间没有发生改变 且不存在超时定时器 就退出函数
-    if(!changed && (*m_timers.begin())->m_next > now_ms)
+    if(!changed && (*m_timers.begin())->m_next < now_ms)
         return;
 
     //构造一个装有当前时间的Timer为了应用lower_bound算法函数
@@ -249,12 +254,12 @@ void TimerManager::listExpiredCb(std::vector<std::function<void()> >& cbs)
     while(it != m_timers.end() && (*it)->m_next == now_ms)
         ++it;
     
-    //将当前位置之前 到队头 所有已经到时的定时器全部拿出 到expired队列中
+    //将队头~当前位置之前 所有已经到时的定时器全部拿出 到expired队列中
     expired.insert(expired.begin(), m_timers.begin(), it);
-    //将原队列前部的定时器任务全部移除
+    //将原队列前部到期的定时器全部移除
     m_timers.erase(m_timers.begin(), it);
 
-    //扩充可执行任务的队列
+    //扩充可执行任务队列空间
     cbs.reserve(expired.size());
     for(auto &x : expired)
     {

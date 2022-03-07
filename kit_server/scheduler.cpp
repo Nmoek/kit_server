@@ -100,12 +100,12 @@ void Scheduler::start()
 void Scheduler::stop()
 {
     /*
-    *  用了use_caller的线程 必须在这个线程里去执行stop
+    *  用了use_caller的线程 必须在当前线程里去执行stop
     *  没有用use_caller的线程 可以任意在别的线程执行stop
     */
     m_autoStop = true;
 
-    //1.只有一个主线程在运行的情况  直接停止即可
+    /*1.只有一个主线程在运行的情况  直接停止即可*/
     if(m_mainCoroutine && m_threadSum == 0 && 
         (m_mainCoroutine->getState() == Coroutine::State::TERM ||
          m_mainCoroutine->getState() == Coroutine::State::INIT))
@@ -119,14 +119,12 @@ void Scheduler::stop()
           
     }
 
-    //2.多个线程在运行  先把子线程停止  再停止主线程
+    /*2.多个线程在运行  先把子线程停止  再停止主线程*/
 
     //主线程Id不为-1说明是创建调度器的线程
     if(m_mainThreadId != -1)
     {
-        //当前的执行器要把创建它的线程也使用的时候  它的stop一定要在创建线程中执行
         KIT_ASSERT(GetThis() == this);
-
     }
     else
     {

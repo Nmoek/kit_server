@@ -338,23 +338,23 @@ private:
     static void ReleasePtr(HttpConnection* ptr, HttpConnectionPool* pool);
 
 private:
-    //要连接的主机域名
+    /// 要连接的主机域名
     std::string m_host;
-    //备用主机域名
+    /// 备用主机域名
     std::string m_vhost;
-    //端口号
+    /// 端口号
     uint16_t m_port;
-    //最大连接数
+    /// 最大连接数
     uint32_t m_maxSize;
-    //每条连接最大存活时间
+    /// 每条连接最大存活时间
     uint32_t m_maxAliveTime;
-    //每条连接上最大请求数量
+    /// 每条连接上最大请求数量
     uint32_t m_maxRequest;
-    //互斥锁 读写频次相当 不用读写锁
+    /// 互斥锁 读写频次相当 不用读写锁
     MutexType m_mutex;
-    //连接存储容器  list增删方便
+    /// 连接存储容器  list增删方便
     std::list<HttpConnection* > m_connections;
-    //当前连接数量 可以突破最大连接数 但是使用完毕放回后若超限就要马上释放
+    /// 当前连接数量 可以突破最大连接数 但是使用完毕放回后若超限就要马上释放
     std::atomic<int32_t> m_total = {0};
 
 };

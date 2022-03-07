@@ -36,19 +36,19 @@ bool FdCtx::init()
     if(m_isInit)
         return true;
     
-    //struct stat 获取当前系统fd的状态
+    //struct stat 获取当前系统文件句柄的状态
     struct stat fd_stat;
     if(fstat(m_fd, &fd_stat) < 0)
     {
         m_isInit = false;
         m_isSocket = false;
-        KIT_LOG_ERROR(g_logger) << "FdCtx init(): fstat error";
+        KIT_LOG_ERROR(g_logger) << "FdCtx init(): fstat() error";
 
     }
     else
     {
         m_isInit = true;
-        //取出状态位
+        //取出状态位 判断句柄类型
         m_isSocket = S_ISSOCK(fd_stat.st_mode);
     }
     
@@ -109,9 +109,8 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
     if(fd == -1)
         return nullptr;
         
+    //加读锁
     MutexType::ReadLock lock(m_mutex);
-
-    //KIT_LOG_DEBUG(g_logger) << "当前fd = " << fd;
 
     //如果fd越界说明容量不够 
     if((int)m_fds.size() <= fd)
@@ -128,7 +127,7 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
     }
     lock.unlock();
 
-
+    //加写锁
     MutexType::WriteLock lock2(m_mutex);
     FdCtx::ptr ctx(new FdCtx(fd));
     if(fd >= (int)m_fds.size())
@@ -146,8 +145,7 @@ void FdManager::del(int fd)
 
     if((int)m_fds.size() <= fd)
         return;
-    
-    //KIT_LOG_DEBUG(g_logger) << "移除当前fd = " << fd;
+
     m_fds[fd].reset();
 
 }

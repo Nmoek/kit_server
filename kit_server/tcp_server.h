@@ -15,6 +15,9 @@
 namespace kit_server
 {
 
+/**
+ * @brief TCP服务器
+ */
 class TcpServer: public std::enable_shared_from_this<TcpServer>, Noncopyable
 {
 public:

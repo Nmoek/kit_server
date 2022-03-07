@@ -52,25 +52,20 @@ void IOManager::FdContext::triggerEvent(IOManager::Event event)
 
     EventContext& ctx = getEventContext(event);
 
-    //KIT_ASSERT(ctx.cb || ctx.coroutine);
+    KIT_ASSERT(ctx.cb || ctx.coroutine);
 
     if(ctx.cb)
     {
-        //KIT_LOG_DEBUG(g_logger) << "触发函数";
         ctx.scheduler->schedule(&ctx.cb);
     }
     else if(ctx.coroutine)
     {
-        //KIT_LOG_DEBUG(g_logger) << "触发协程";
         ctx.scheduler->schedule(&ctx.coroutine);
     }
  
 
     ctx.scheduler = nullptr;
 }
-
-
-
 
 
 IOManager::IOManager(const std::string& name, size_t threads_size, bool use_caller)
@@ -101,7 +96,7 @@ IOManager::IOManager(const std::string& name, size_t threads_size, bool use_call
     // [0]为读管道 [1]为写管道
     event.data.fd = m_tickleFds[0];    
 
-    //设置句柄属性  将读fd 设置为非阻塞
+    //设置读管道句柄属性 将读fd 设置为非阻塞
     ret = fcntl(m_tickleFds[0], F_SETFL, O_NONBLOCK);
     if(ret < 0)
     {
@@ -117,22 +112,24 @@ IOManager::IOManager(const std::string& name, size_t threads_size, bool use_call
         KIT_ASSERT2(false, "epoll_ctl error");
     }
 
-    //默认为32个事件信息
+    //默认为个事件信息
     contextResize(256);
 
-    //初始化后直接启动
+    //启动IO调度器
     start();
 }
 
 IOManager::~IOManager()
 {
+    //停止调度器
     stop();
-    //把句柄都关闭
-    close(m_epfd);
-    close(m_tickleFds[0]);
-    close(m_tickleFds[1]);
 
-    //删除为事件上下文分配的空间
+    close(m_epfd);          //关闭epoll句柄
+    close(m_tickleFds[0]);  //关闭读管道句柄
+    close(m_tickleFds[1]);  //关闭写管道句柄
+
+    //删除事件对象分配的空间
+    //不使用智能指针的原因：要把空间释放集中到持有调度器的这个线程中
     for(size_t i = 0;i < m_fdContexts.size();++i)
     {
         if(m_fdContexts[i])
@@ -163,28 +160,32 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
     FdContext *fd_ctx = nullptr;
 
     /*拿到对应的 句柄对象  没有就创建*/
+    //给句柄队列加读锁
     MutexType::ReadLock lock(m_mutex); 
+
     if((int)m_fdContexts.size() > fd)
     {
         //KIT_LOG_DEBUG(g_logger) << "存在并取出 fd = " << fd;
         fd_ctx = m_fdContexts[fd];
-        lock.unlock();
+        lock.unlock();  //解读锁
     }
-    else  //事件信息 容器扩容
+    else  //事件对象扩容
     {
+        //解读锁
         lock.unlock();
-        
+        //给句柄队列加写锁
         MutexType::WriteLock lock2(m_mutex);
         
-        KIT_LOG_DEBUG(g_logger) << "不存在并扩容 fd = " << fd;
+        KIT_LOG_DEBUG(g_logger) << "fd不存在并扩容,fd=" << fd;
         contextResize(fd * 1.5);
         fd_ctx = m_fdContexts[fd];
     }
 
+    //给句柄资源加互斥锁
     FdContext::MutexType::Lock _lock(fd_ctx->mutex);
 
     /*设置句柄对象的信息*/
-    //同一个句柄不能在上面加相同的事件
+    //同一个句柄上面不能加加相同的事件
     //如果有这种情况出现 说明有多个线程在操作同一个句柄
     if(KIT_UNLIKELY(fd_ctx->events & event))   
     {
@@ -194,7 +195,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
         KIT_ASSERT(!(fd_ctx->events & event));
     }
 
-    //判断事件 是需要修改还是新增
+    //判断本次事件修改还是新增
     int op = fd_ctx->events ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
 
     struct epoll_event ev;
@@ -246,7 +247,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
 bool IOManager::delEvent(int fd, Event event)
 {
     MutexType::ReadLock lock(m_mutex);
-    //句柄不存在不用删除
+    //句柄对象不存在不用删除
     if((int)m_fdContexts.size() <= fd)
     {
         return false;
@@ -255,6 +256,7 @@ bool IOManager::delEvent(int fd, Event event)
     FdContext* fd_ctx = m_fdContexts[fd];
     lock.unlock();
 
+    //给句柄资源加互斥锁
     FdContext::MutexType::Lock lock2(fd_ctx->mutex);
     //该句柄上没有对应事件 不用删除
     if(!(fd_ctx->events & event))
@@ -267,7 +269,6 @@ bool IOManager::delEvent(int fd, Event event)
 
     //去掉之后看句柄上还是否有剩余的事件  有就修改epoll 没有了就从epoll删除
     int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-
 
     //构造epoll_event事件
     struct epoll_event ev;
@@ -291,7 +292,7 @@ bool IOManager::delEvent(int fd, Event event)
     //待处理事件对象自减
     --m_pendingEventCount;
     
-    //把fdContext句柄对象 中旧的 事件对象EventContext拿出来重置
+    //把fdContext句柄对象中对应的读/写事件对象EventContext拿出来清空
     FdContext::EventContext& event_context = fd_ctx->getEventContext(event);
     fd_ctx->resetEventContext(event_context);
 
@@ -303,7 +304,7 @@ bool IOManager::delEvent(int fd, Event event)
 bool IOManager::cancelEvent(int fd, Event event)
 {
     MutexType::ReadLock lock(m_mutex);
-    //句柄不存在不用删除
+    //句柄不存在不用触发
     if((int)m_fdContexts.size() <= fd)
     {
         return false;
@@ -313,13 +314,11 @@ bool IOManager::cancelEvent(int fd, Event event)
     lock.unlock();
 
     FdContext::MutexType::Lock lock2(fd_ctx->mutex);
-    //该句柄上没有对应事件 不用删除
+    //该句柄上没有对应事件 不用触发
     if(!(fd_ctx->events & event))
     {
         return false;
     }
-
-    // KIT_LOG_DEBUG(g_logger) << "fd_ctx->events=" << fd_ctx->events;
 
     //取反运算 + 与运算 就是去掉该事件
     Event left_events = (Event)(fd_ctx->events & ~event);
@@ -343,7 +342,7 @@ bool IOManager::cancelEvent(int fd, Event event)
     }
 
 
-    //事件对象 主动触发事件
+    //主动触发句柄上事件绑定的回调函数 重新加入到任务队列里
     fd_ctx->triggerEvent(event);
 
     //待处理事件对象自减
@@ -374,7 +373,7 @@ bool IOManager::cancelAll(int fd)
         return false;
     }
 
-
+    //直接从epoll里移除该事件
     int op = EPOLL_CTL_DEL;
 
     //构造epoll_event事件
@@ -396,8 +395,7 @@ bool IOManager::cancelAll(int fd)
 
     if(fd_ctx->events & READ)
     {
-
-        //事件对象 主动触发事件
+        //事件对象 主动触发读事件对象上的回调
         fd_ctx->triggerEvent(READ);
 
         //待处理事件对象自减
@@ -407,7 +405,7 @@ bool IOManager::cancelAll(int fd)
     if(fd_ctx->events & WRITE)
     {
 
-        //事件对象 主动触发事件
+        //事件对象 主动触发写事件对象上的回调
         fd_ctx->triggerEvent(WRITE);
 
         //待处理事件对象自减
@@ -415,7 +413,7 @@ bool IOManager::cancelAll(int fd)
 
     }
 
-    //将注册事件置0
+    //句柄对象上的注册事件应该为NONE = 0
     KIT_ASSERT(fd_ctx->events == 0);
 
     return true;

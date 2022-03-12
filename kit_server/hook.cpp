@@ -190,19 +190,10 @@ RETRY:
             }, winfo);
         }
 
-        //重试次数计数器
-        // int again_count = 0;
-        // uint64_t now_us = 0;
-
-        // if(strcmp(hook_func_name, "accept") == 0)
-        // {
-        //     KIT_LOG_INFO(g_logger) << "accept异步回调" << ",id=" << Coroutine::GetThis()->getID()
-        //         << ",state=" << Coroutine::GetThis()->getState();
-        // }
 
         /*b.为对应的fd添加异步回调 */
         int ret = iom->addEvent(fd, (IOManager::Event)event);
-        if(KIT_UNLICKLY(ret < 0))
+        if(KIT_UNLIKELY(ret < 0))
         {
             // if(c)
             //     KIT_LOG_ERROR(g_logger) << hook_func_name << " do_io: addEvent(" << fd << "," << event << ")" << "error, again count = " << again_count << ", used time=" << GetCurrentUs() - now;
@@ -216,11 +207,6 @@ RETRY:
             return -1;
         }
 
-        // if(strcmp(hook_func_name, "accept") == 0)
-        // {
-        //     KIT_LOG_INFO(g_logger) << "accept协程切出" << ",id=" << Coroutine::GetThis()->getID()
-        //         << ",state=" << Coroutine::GetThis()->getState();
-        // }
 
         /*c.挂起当前协程*/
         Coroutine::YieldToHold();
@@ -228,17 +214,12 @@ RETRY:
             1.IO没有数据到达，条件定时器超时强制唤醒 
             2.定时器还没有超时，IO活跃有数据到达触发回调
         */
-        // if(strcmp(hook_func_name, "accept") == 0)
-        // {
-        //     KIT_LOG_INFO(g_logger) << "accept协程切回" << ",id=" << Coroutine::GetThis()->getID()
-        //         << ",state=" << Coroutine::GetThis()->getState();
-        // }
 
         //先把定时器 取消
         if(timer) 
             timer->cancel();
         
-        
+    
         //超时条件不空 说明是由定时器超时切回的
         if(tinfo->canceled) //释放了就是0
         {
@@ -249,7 +230,6 @@ RETRY:
         //再一次进行IO操作
         goto RETRY;
         
-
     }
 
     return n;

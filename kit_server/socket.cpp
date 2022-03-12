@@ -30,6 +30,8 @@ Socket::ptr Socket::CreateTCP(Address::ptr address)
 Socket::ptr Socket::CreateUDP(Address::ptr address)
 {
     Socket::ptr sock(new Socket(address->getFamily(), Type::UDP, 0));
+    sock->newSocket();  
+    sock->m_isConnectd = true;
     return sock;
 }
 
@@ -44,6 +46,8 @@ Socket::ptr Socket::CreateTCPSocket()
 Socket::ptr Socket::CreateUDPSocket()
 {
     Socket::ptr sock(new Socket(Family::IPv4, Type::UDP, 0));
+    sock->newSocket();  
+    sock->m_isConnectd = true;
     return sock;
 }
 
@@ -58,6 +62,8 @@ Socket::ptr Socket::CreateTCPSocket6()
 Socket::ptr Socket::CreateUDPSocket6()
 {
     Socket::ptr sock(new Socket(Family::IPv6, Type::UDP, 0));
+    sock->newSocket();  
+    sock->m_isConnectd = true;
     return sock;
 }
 

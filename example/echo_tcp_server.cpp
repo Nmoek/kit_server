@@ -13,10 +13,13 @@
 
 static kit_server::Logger::ptr g_logger = KIT_LOG_ROOT();
 
+
+
 class EchoServer: public kit_server::TcpServer
 {
 public:
     typedef std::shared_ptr<EchoServer> ptr;
+    
     enum Type
     {
         UNKOWN,
@@ -32,8 +35,6 @@ public:
 
 private:
     Type m_type = Type::UNKOWN;
-
-
 };
 
 
